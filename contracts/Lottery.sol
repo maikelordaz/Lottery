@@ -14,6 +14,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 // INTERFACES USED //
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./interfaces/Compound.sol";
 // LIBRARIES USED //
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
@@ -30,14 +31,17 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
     address private UniswapV2Router02;
     // tokens accepted
     address private DAIaddress;
-    IERC20Upgradeable DAI;
+    IERC20Upgradeable public DAI;
     address private USDTaddress;
     IERC20Upgradeable USDT;
     address private USDCaddress;
     IERC20Upgradeable USDC;
+    // token invested
+    CErc20 public cDAI;
+
 
     struct player {
-        address payable playerAddress; 
+        address playerAddress; 
         uint256 DAIamount; // the amount of DAI after conversion.
         uint256 ticketsBuyed; // the amount of tockets the user has purchased.
         uint256 lotteryNumber; 
@@ -48,10 +52,8 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
         uint256 startDate;
         uint256 buyingDeadline;
         uint256 finishDate;
-    } 
-    struct lotteryWinner {
-        address payable winner;
         uint256 prize;
+        address winner;
     }
 
 //EVENTS
@@ -67,18 +69,17 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
         uint256 pot,
         uint256 startDate,
         uint256 buyingDeadline,
-        uint256 finishDate
+        uint256 finishDate,
+        uint256 prize,
+        address winner
     );
     
-
 //MAPPINGS
 
     mapping(uint256 => player) private _idToPlayer;
     uint256 private _playerId;
     mapping(uint256 => lottery) private _idToLottery;
     uint256 private _lotteryId;
-    mapping(uint256 => lotteryWinner) private _idToWinner;
-    uint256 private _winnerId;
 
 // FUNCTIONS //
 
@@ -90,19 +91,22 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
         __ReentrancyGuard_init();
         UniswapV2Router02 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
         DAIaddress = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+        DAI = IERC20Upgradeable(DAIaddress);
         USDTaddress = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
         USDCaddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; 
+        cDAI = CErc20(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         slippage = 5; 
         fee = _fee.div(100);
         _playerId = 0;
-        _lotteryId = 0;
-         _winnerId = 0;     
+        _lotteryId = 0;     
     }
     /**
     * @notice a setter function to set the lottery ticket price.
     * @dev only the owner of the contract can change the fee.
     * @param _ticketPrice the lottery ticket price.
     */
+    //---------------------------- Lottery settings --------------------------------------------//
+
     function setTicketPrice(uint256 _ticketPrice) 
     public
     onlyOwner {
@@ -134,11 +138,15 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                 lottery (0,
                         block.timestamp,
                         block.timestamp.add(2 days),
-                        block.timestamp.add(7 days));
+                        block.timestamp.add(7 days),
+                        0,
+                        address(0));
             emit newLottery(0, 
                             block.timestamp, 
                             block.timestamp.add(2 days), 
-                            block.timestamp.add(7 days));                       
+                            block.timestamp.add(7 days),
+                            0,
+                            address(0));                       
         }           
     }
     /**
@@ -159,6 +167,39 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                 swapExactTokensForTokensSupportingFeeOnTransferTokens(
                     _amountIn, _amountOutMin, _path, address(this), block.timestamp + 1);                    
     }
+        //----------------------------- Compound Investment ----------------------------------------//
+    /**
+    * @notice some auxiliar functions to make the investment
+    * @dev this one lend the tokens to the protocol
+    * @param _amount tje amount of tokens to lend
+    */
+    function suply(uint256 _amount) external {
+        DAI.approve(address(cDAI), _amount);
+        require(cDAI.mint(_amount) == 0, "mint failed");
+    }
+    /**
+    * @dev this one to get the tokens on the protocol, profits included.
+    */
+    function getCdaiBalance() external view returns (uint) {
+        return cDAI.balanceOf(address(this));
+    }
+    /**
+    * @dev this one to check the balance of the tokens we lend
+    */
+    function balanceOfUnderlying() external returns (uint) {
+        return cDAI.balanceOfUnderlying(address(this));
+    }
+    /**
+    * @dev this one to retrieve the tokens and the profits.
+    * @param _cTokenAmount the amount of tokens to redeem.
+    */
+    function redeem(uint256 _cTokenAmount) external {
+        require(cDAI.redeem(_cTokenAmount) == 0, "redeem failed");
+    }
+
+
+    
+    //----------------------------- Player functions -------------------------------------------//
     /**
     * @notice a function to buy the lottery tickets.
     * @dev only DAI, USDT and USDC are accepted as payments.
@@ -177,6 +218,9 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                 "We only accept DAI, USDT or USDC tokens.");
         require(amountIn >= ticketPrice, "You have to buy at least one ticket.");
         require(numberOfLotteries > 0, "There are no lotteries active right now");
+        // Transfer all tokens to contract and swap it to DAI.  
+        IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        _swapTokensForDAI(tokenIn, amountIn);
         uint256 tickets = amountIn.div(ticketPrice);
         uint256 playersBuyDate = block.timestamp;
         // A loop to iterate between all lotteries.
@@ -185,17 +229,14 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
             uint256 deadlineToBuy = _idToLottery[j].buyingDeadline;
             // A condition to check if the buying date has already passed.
             if(playersBuyDate <= deadlineToBuy) {
-                // Transfer all tokens to contract and swap it to DAI.  
-                IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountIn);
-                _swapTokensForDAI(tokenIn, amountIn);
-                // Add the player to the mapping, and emit the event.
+                // Add the player to the actual lottery, and emit the event.
                 _idToPlayer[_playerId] = 
-                    player (payable(msg.sender), 
+                    player (msg.sender, 
                             amountIn,
                             tickets,
                             j, 
                             true);
-                emit newPlayer (payable(msg.sender), 
+                emit newPlayer (msg.sender, 
                                 amountIn,
                                 tickets,
                                 j,
@@ -203,17 +244,16 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                 // Add the payment to the lottery pot.
                 _idToLottery[j].pot += amountIn;                
             }
-            // If the time already I add the player and the payment to the next lottery. 
+            // If the time already passed, I add the player and the payment to the next lottery. 
             else {              
-                IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountIn);
-                _swapTokensForDAI(tokenIn, amountIn);
+                if(j == numberOfLotteries) revert ("There are no more loteries");
                 _idToPlayer[_playerId] = 
-                    player (payable(msg.sender), 
+                    player (msg.sender, 
                             amountIn,
                             tickets,
                             j.add(1), 
                             true);
-                emit newPlayer (payable(msg.sender), 
+                emit newPlayer (msg.sender, 
                                 amountIn,
                                 tickets,
                                 j.add(1),
@@ -222,9 +262,29 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
             }
         }
     }
-}
+    /**
+    * @notice a function to retire from the lottery.
+    * @dev the player can not retire the investment if is already invested, if thats the case the
+    * player has to wait until the contract redeem the invest and pick the winner.
+    * @param ID the players Id.
+    */
+    function retirement(uint256 ID)
+    public
+    nonReentrant {
+        
+        require(_idToPlayer[ID].playerAddress == msg.sender &&
+                _idToPlayer[ID].playing == true, "You are not playing right now");
+        uint256 retirementDate = block.timestamp;
+        uint256 playersLottery = _idToPlayer[ID].lotteryNumber;
+        uint256 lotteryDate = _idToLottery[playersLottery].buyingDeadline;
+        require(retirementDate < lotteryDate, 
+                "Your money is already invested, wait until the finisf date");
+        uint256 devolution = _idToPlayer[ID].DAIamount;
+        DAI.transferFrom(address(this), msg.sender, devolution);
+        
+    }
 
 
-            
-            
 
+}          
+         

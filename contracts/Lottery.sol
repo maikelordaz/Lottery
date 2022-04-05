@@ -331,17 +331,26 @@ contract Lottery is Initializable,
     }
     /**
     * @notice The main function to get the winner.
+    * @dev This function it is called automatically when the needed time is reached.
+    * @param ID the lottery Id.
     */
     function payWinner(uint256 ID) 
     internal {        
         
+            // Some requires to check if the payment can proceed.
             uint256 _prize =  _idToLottery[ID].prize;
             require(_prize > 0, "There are no prize");
             require(_idToLottery[ID].payed == false);
+            // The selection of the winner
             uint256 _winnerID = randomResult % _idToLottery[ID].playersQ;
+            // Transfer the invested amount and the profits to the winner.
             uint256 _profit = _prize + _idToPlayer[_winnerID].DAIamount;
             address _winnerAddress = _idToPlayer[_winnerID].playerAddress;
-            DAI.transferFrom(address(this), _winnerAddress, _profit);   
+            DAI.transferFrom(address(this), _winnerAddress, _profit);
+            // Update the lottery and the player. 
+            _idToLottery[ID].winner = _winnerAddress;
+            _idToLottery[ID].payed = true;
+            _idToPlayer[_winnerID] = player(_winnerAddress, 0, 0, 0, false);  
     }
     
 

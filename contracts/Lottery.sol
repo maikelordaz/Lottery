@@ -11,6 +11,7 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 // INTERFACES USED //
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -18,13 +19,16 @@ import "./interfaces/Compound.sol";
 // LIBRARIES USED //
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 
-contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract Lottery is Initializable, 
+                    OwnableUpgradeable, 
+                    ReentrancyGuardUpgradeable, 
+                    VRFConsumerBase {
 
     using SafeMathUpgradeable for uint256;
 
 // VARIABLES //
 
-    uint256 public fee;
+    uint256 public lotteryFee;
     uint256 public slippage;
     uint256 public ticketPrice;
     uint256 numberOfLotteries;
@@ -36,8 +40,11 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
     IERC20Upgradeable USDT;
     address private USDCaddress;
     IERC20Upgradeable USDC;
-    // token invested
-    CErc20 public cDAI;
+    CErc20 public cDAI; // token invested
+
+    bytes32 internal keyHash; // identifies which Chainlink oracle to use
+    uint internal randomnessFee; // fee to get random number
+    uint public randomResult;
 
 
     struct player {
@@ -49,11 +56,13 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
     }    
     struct lottery {
         uint256 pot;
+        uint256 playersQ; // quantity of players.
         uint256 startDate;
         uint256 buyingDeadline;
         uint256 finishDate;
         uint256 prize;
         address winner;
+        bool payed;
     }
 
 //EVENTS
@@ -67,11 +76,13 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
     );    
     event newLottery (
         uint256 pot,
+        uint256 playersQ,
         uint256 startDate,
         uint256 buyingDeadline,
         uint256 finishDate,
         uint256 prize,
-        address winner
+        address winner,
+        bool payed
     );
     
 //MAPPINGS
@@ -83,7 +94,7 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
 
 // FUNCTIONS //
 
-    function initialize(uint256 _fee) 
+    function initialize(uint256 _fee)
     public
     initializer {
         require(_fee > 0);
@@ -96,17 +107,20 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
         USDCaddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48; 
         cDAI = CErc20(0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643);
         slippage = 5; 
-        fee = _fee.div(100);
+        lotteryFee = _fee.div(100);
         _playerId = 0;
-        _lotteryId = 0;     
+        _lotteryId = 0; 
+        VRFConsumerBase.initialize(0xf0d54349aDdcf704F77AE15b96510dEA15cb7952,
+                                   0x514910771AF9Ca656af840dff83E8264EcF986CA);
+        keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
+        randomnessFee = 2 * 10 ** 18; // 2 Link 
     }
+//--------------------------------- Lottery settings -------------------------------------------//
     /**
     * @notice a setter function to set the lottery ticket price.
     * @dev only the owner of the contract can change the fee.
     * @param _ticketPrice the lottery ticket price.
     */
-    //---------------------------- Lottery settings --------------------------------------------//
-
     function setTicketPrice(uint256 _ticketPrice) 
     public
     onlyOwner {
@@ -115,6 +129,7 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
     }
     /**
     * @notice a getter function to get the ticket price.
+    * @return uint256 the ticket price
     */
     function getTicketPrice()
     public
@@ -136,17 +151,21 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
             _lotteryId++;
             _idToLottery[_lotteryId] = 
                 lottery (0,
+                        0,
                         block.timestamp,
                         block.timestamp.add(2 days),
                         block.timestamp.add(7 days),
                         0,
-                        address(0));
-            emit newLottery(0, 
+                        address(0),
+                        false);
+            emit newLottery(0,
+                            0, 
                             block.timestamp, 
                             block.timestamp.add(2 days), 
                             block.timestamp.add(7 days),
                             0,
-                            address(0));                       
+                            address(0),
+                            false);                       
         }           
     }
     /**
@@ -167,27 +186,37 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                 swapExactTokensForTokensSupportingFeeOnTransferTokens(
                     _amountIn, _amountOutMin, _path, address(this), block.timestamp + 1);                    
     }
-    //----------------------------- Compound Investment ----------------------------------------//
+//--------------------------------- Compound Investment ----------------------------------------//
+    /**
+    * @notice A function to make an investment on Compound.
+    * @dev This function is called automatically when there is one person playing.
+    */
     function potInvestment() 
-    private {
+    internal {
+        // A loop to enter every lottery
         for(uint256 k = 0; k == numberOfLotteries; k++) {
             uint256 potToInvest = _idToLottery[k].pot;
             uint256 rightNow = block.timestamp;
-            while(_idToLottery[k].finishDate < rightNow) {
+            // time checks
+            while(_idToLottery[k].finishDate < rightNow.add(1)) {
+                // Compound investment
                 if(_idToLottery[k].buyingDeadline == rightNow) {
                     DAI.approve(address(cDAI), potToInvest);
                     require(cDAI.mint(potToInvest) == 0, "mint failed");                  
                 } 
+                // Compound retire
                 if (_idToLottery[k].finishDate == rightNow) {
                     uint256 totalToRedeem = cDAI.balanceOf(address(this));
                     uint256 _prize = totalToRedeem.sub(potToInvest);
                     require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
                     _idToLottery[k].prize = _prize;
+                    // select and pay the winner
+                    payWinner(k);
                 }
             }
         }
     }
-    //----------------------------- Player functions -------------------------------------------//
+//--------------------------------- Player functions -------------------------------------------//
     /**
     * @notice a function to buy the lottery tickets.
     * @dev only DAI, USDT and USDC are accepted as payments.
@@ -209,15 +238,15 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
         // Transfer all tokens to contract and swap it to DAI.  
         IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountIn);
         _swapTokensForDAI(tokenIn, amountIn);
+        _playerId++;
         uint256 tickets = amountIn.div(ticketPrice);
         uint256 playersBuyDate = block.timestamp;
         // A loop to iterate between all lotteries.
-        for(uint256 j = 0; j <= numberOfLotteries ; j++) {
-            _playerId++;            
+        for(uint256 j = 0; j <= numberOfLotteries ; j++) {                        
             uint256 deadlineToBuy = _idToLottery[j].buyingDeadline;
             // A condition to check if the buying date has already passed.
             if(playersBuyDate <= deadlineToBuy) {
-                // Add the player to the actual lottery, and emit the event.
+                // Add the player to the mapping, and emit the event.
                 _idToPlayer[_playerId] = 
                     player (msg.sender, 
                             amountIn,
@@ -229,7 +258,8 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                                 tickets,
                                 j,
                                 true);
-                // Add the payment to the lottery pot.
+                // Add the player to the corresponding lottery payment to the pot.
+                _idToLottery[j].playersQ++;
                 _idToLottery[j].pot += amountIn;                
             }
             // If the time already passed, I add the player and the payment to the next lottery. 
@@ -246,8 +276,12 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                                 tickets,
                                 j.add(1),
                                 true);
-                    _idToLottery[j.add(1)].pot += amountIn;
+                _idToLottery[j.add(1)].playersQ++;
+                _idToLottery[j.add(1)].pot += amountIn;
             }
+        }
+        if(_playerId > 0) {
+            potInvestment();
         }
     }
     /**
@@ -260,18 +294,56 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
     public
     nonReentrant {
         
+        // A require to check if the caller is an actual player.
         require(_idToPlayer[ID].playerAddress == msg.sender &&
                 _idToPlayer[ID].playing == true, "You are not playing right now");
+        // A check to see if the player can retire at the moment.
         uint256 retirementDate = block.timestamp;
         uint256 playersLottery = _idToPlayer[ID].lotteryNumber;
         uint256 lotteryDate = _idToLottery[playersLottery].buyingDeadline;
         require(retirementDate < lotteryDate, 
                 "Your money is already invested, wait until the finisf date");
+        // Transfer the tokens used by the player. DAI equivalent.
         uint256 devolution = _idToPlayer[ID].DAIamount;
         DAI.transferFrom(address(this), msg.sender, devolution);
+        // Retire the player from the lottery.
+        uint256 _lottery = _idToPlayer[ID].lotteryNumber;
+        _idToLottery[_lottery].playersQ--;
+        _idToPlayer[ID] = player (msg.sender, 0, 0, 0, false);
         
     }
-
+//--------------------------------- Picking the winner ------------------------------------------//
+    /**
+    * @notice Two auxiliar functions to get randomnumbers with Chainlink VRF.
+    * @dev First the call to the oracle.
+    */
+    function getRandomNumber() public onlyOwner returns (bytes32 requestId) {        
+        require(LINK.balanceOf(address(this)) >= randomnessFee, "Not enough LINK to pay fee");
+        requestId = requestRandomness(keyHash, randomnessFee);
+    } 
+    /**
+    * @dev Second the response from the oracle.
+    */    
+    function fulfillRandomness(bytes32 requestId, uint randomness) internal override {
+        randomResult = randomness;
+        uint256 conversion = uint256(requestId);
+        payWinner(conversion);
+    }
+    /**
+    * @notice The main function to get the winner.
+    */
+    function payWinner(uint256 ID) 
+    internal {        
+        
+            uint256 _prize =  _idToLottery[ID].prize;
+            require(_prize > 0, "There are no prize");
+            require(_idToLottery[ID].payed == false);
+            uint256 _winnerID = randomResult % _idToLottery[ID].playersQ;
+            uint256 _profit = _prize + _idToPlayer[_winnerID].DAIamount;
+            address _winnerAddress = _idToPlayer[_winnerID].playerAddress;
+            DAI.transferFrom(address(this), _winnerAddress, _profit);   
+    }
+    
 
 
 }          

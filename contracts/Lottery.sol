@@ -167,38 +167,26 @@ contract Lottery is Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeabl
                 swapExactTokensForTokensSupportingFeeOnTransferTokens(
                     _amountIn, _amountOutMin, _path, address(this), block.timestamp + 1);                    
     }
-        //----------------------------- Compound Investment ----------------------------------------//
-    /**
-    * @notice some auxiliar functions to make the investment
-    * @dev this one lend the tokens to the protocol
-    * @param _amount tje amount of tokens to lend
-    */
-    function suply(uint256 _amount) external {
-        DAI.approve(address(cDAI), _amount);
-        require(cDAI.mint(_amount) == 0, "mint failed");
+    //----------------------------- Compound Investment ----------------------------------------//
+    function potInvestment() 
+    private {
+        for(uint256 k = 0; k == numberOfLotteries; k++) {
+            uint256 potToInvest = _idToLottery[k].pot;
+            uint256 rightNow = block.timestamp;
+            while(_idToLottery[k].finishDate < rightNow) {
+                if(_idToLottery[k].buyingDeadline == rightNow) {
+                    DAI.approve(address(cDAI), potToInvest);
+                    require(cDAI.mint(potToInvest) == 0, "mint failed");                  
+                } 
+                if (_idToLottery[k].finishDate == rightNow) {
+                    uint256 totalToRedeem = cDAI.balanceOf(address(this));
+                    uint256 _prize = totalToRedeem.sub(potToInvest);
+                    require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
+                    _idToLottery[k].prize = _prize;
+                }
+            }
+        }
     }
-    /**
-    * @dev this one to get the tokens on the protocol, profits included.
-    */
-    function getCdaiBalance() external view returns (uint) {
-        return cDAI.balanceOf(address(this));
-    }
-    /**
-    * @dev this one to check the balance of the tokens we lend
-    */
-    function balanceOfUnderlying() external returns (uint) {
-        return cDAI.balanceOfUnderlying(address(this));
-    }
-    /**
-    * @dev this one to retrieve the tokens and the profits.
-    * @param _cTokenAmount the amount of tokens to redeem.
-    */
-    function redeem(uint256 _cTokenAmount) external {
-        require(cDAI.redeem(_cTokenAmount) == 0, "redeem failed");
-    }
-
-
-    
     //----------------------------- Player functions -------------------------------------------//
     /**
     * @notice a function to buy the lottery tickets.

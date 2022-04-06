@@ -46,7 +46,6 @@ contract Lottery is Initializable,
     uint internal randomnessFee; // fee to get random number
     uint public randomResult;
 
-
     struct player {
         address playerAddress; 
         uint256 DAIamount; // the amount of DAI after conversion.
@@ -56,15 +55,15 @@ contract Lottery is Initializable,
     }    
     struct lottery {
         uint256 pot;
-        uint256 playersQ; // quantity of players.
+        uint256 ticketNumber;
         uint256 startDate;
         uint256 buyingDeadline;
         uint256 finishDate;
         uint256 prize;
+        address buyer;
         address winner;
         bool payed;
     }
-
 //EVENTS
 
     event newPlayer (
@@ -76,11 +75,12 @@ contract Lottery is Initializable,
     );    
     event newLottery (
         uint256 pot,
-        uint256 playersQ,
+        uint256 ticketNumber,
         uint256 startDate,
         uint256 buyingDeadline,
         uint256 finishDate,
         uint256 prize,
+        address buyer,
         address winner,
         bool payed
     );
@@ -157,6 +157,7 @@ contract Lottery is Initializable,
                         block.timestamp.add(7 days),
                         0,
                         address(0),
+                        address(0),
                         false);
             emit newLottery(0,
                             0, 
@@ -164,6 +165,7 @@ contract Lottery is Initializable,
                             block.timestamp.add(2 days), 
                             block.timestamp.add(7 days),
                             0,
+                            address(0),
                             address(0),
                             false);                       
         }           
@@ -211,7 +213,7 @@ contract Lottery is Initializable,
                     require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
                     _idToLottery[k].prize = _prize;
                     // select and pay the winner
-                    payWinner(k);
+                    getRandomNumber();
                 }
             }
         }
@@ -258,9 +260,13 @@ contract Lottery is Initializable,
                                 tickets,
                                 j,
                                 true);
-                // Add the player to the corresponding lottery payment to the pot.
-                _idToLottery[j].playersQ++;
-                _idToLottery[j].pot += amountIn;                
+                // Add the tokens to the pot.
+                _idToLottery[j].pot += amountIn;
+                // Asign each lottery ticket to the player
+                for(uint256 m = 0; m <= tickets; m++) {
+                    _idToLottery[j].ticketNumber++;
+                    _idToLottery[j].buyer = msg.sender;
+                }         
             }
             // If the time already passed, I add the player and the payment to the next lottery. 
             else {              
@@ -276,8 +282,12 @@ contract Lottery is Initializable,
                                 tickets,
                                 j.add(1),
                                 true);
-                _idToLottery[j.add(1)].playersQ++;
                 _idToLottery[j.add(1)].pot += amountIn;
+                for(uint256 m = 0; m <= tickets; m++) {
+                    _idToLottery[j.add(1)].ticketNumber++;
+                    _idToLottery[j.add(1)].buyer = msg.sender;
+                }
+                
             }
         }
         if(_playerId > 0) {
@@ -308,13 +318,13 @@ contract Lottery is Initializable,
         DAI.transferFrom(address(this), msg.sender, devolution);
         // Retire the player from the lottery.
         uint256 _lottery = _idToPlayer[ID].lotteryNumber;
-        _idToLottery[_lottery].playersQ--;
+        _idToLottery[_lottery].ticketNumber -= _idToPlayer[ID].ticketsBuyed;
         _idToPlayer[ID] = player (msg.sender, 0, 0, 0, false);
         
     }
 //--------------------------------- Picking the winner ------------------------------------------//
     /**
-    * @notice Two auxiliar functions to get randomnumbers with Chainlink VRF.
+    * @notice Functions to get randomnumbers with Chainlink VRF.
     * @dev First the call to the oracle.
     */
     function getRandomNumber() public onlyOwner returns (bytes32 requestId) {        
@@ -323,37 +333,27 @@ contract Lottery is Initializable,
     } 
     /**
     * @dev Second the response from the oracle.
-    */    
+    */
     function fulfillRandomness(bytes32 requestId, uint randomness) internal override {
         randomResult = randomness;
-        uint256 conversion = uint256(requestId);
-        payWinner(conversion);
-    }
-    /**
-    * @notice The main function to get the winner.
-    * @dev This function it is called automatically when the needed time is reached.
-    * @param ID the lottery Id.
-    */
-    function payWinner(uint256 ID) 
-    internal {        
-        
-            // Some requires to check if the payment can proceed.
-            uint256 _prize =  _idToLottery[ID].prize;
-            require(_prize > 0, "There are no prize");
-            require(_idToLottery[ID].payed == false);
-            // The selection of the winner
-            uint256 _winnerID = randomResult % _idToLottery[ID].playersQ;
-            // Transfer the invested amount and the profits to the winner.
-            uint256 _profit = _prize + _idToPlayer[_winnerID].DAIamount;
-            address _winnerAddress = _idToPlayer[_winnerID].playerAddress;
-            DAI.transferFrom(address(this), _winnerAddress, _profit);
-            // Update the lottery and the player. 
-            _idToLottery[ID].winner = _winnerAddress;
-            _idToLottery[ID].payed = true;
-            _idToPlayer[_winnerID] = player(_winnerAddress, 0, 0, 0, false);  
-    }
-    
-
-
+        uint256 ID = uint256(requestId);
+        // Some requires to check if the payment can proceed.
+        uint256 _profit =  _idToLottery[ID].prize;
+        uint256 _ownerFee = _profit.mul(lotteryFee);
+        uint256 _prize = _profit.sub(_ownerFee);        
+        require(_profit > 0, "There are no prize");
+        require(_idToLottery[ID].payed == false);
+        // The selection of the winner
+        uint256 _winnerID = randomResult % _idToLottery[ID].ticketNumber;
+        // Transfer the invested amount and the profits to the winner.
+        uint256 _money = _prize + _idToPlayer[_winnerID].DAIamount;
+        address _winnerAddress = _idToPlayer[_winnerID].playerAddress;
+        DAI.transferFrom(address(this), owner(), _ownerFee);
+        DAI.transferFrom(address(this), _winnerAddress, _money);
+        // Update the lottery and the player. 
+        _idToLottery[ID].winner = _winnerAddress;
+        _idToLottery[ID].payed = true;
+        _idToPlayer[_winnerID] = player(_winnerAddress, 0, 0, 0, false);
+    } 
 }          
          

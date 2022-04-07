@@ -5,6 +5,8 @@ require("@nomiclabs/hardhat-waffle");
 require("solidity-coverage");
 require("hardhat-gas-reporter");
 require("chai");
+require('@openzeppelin/hardhat-upgrades');
+require("@nomiclabs/hardhat-web3");
 
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
@@ -25,7 +27,7 @@ module.exports = {
     hardhat: {
       forking: {
         url: process.env.ALCHEMY_MAINNET_RPC_URL,
-        blockNumber: 14412000
+        blockNumber: 14533000
       }
     }
    }

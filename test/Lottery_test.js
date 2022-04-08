@@ -17,7 +17,7 @@ describe("Lottery", function () {
     const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
     const usdt = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
   // LINK TO FUND CONTRACT //
-  const link = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
+  //const link = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
   // LOTTERIES //
     const price = 10;
     const _numberOfLotteries = 2;
@@ -32,7 +32,8 @@ beforeEach(async function () {
     // THE INTERFACES ARE INITIALIZED //
     DAI = await ethers.getContractAt("IERC20Upgradeable", dai);
     USDC = await ethers.getContractAt("IERC20Upgradeable", usdc);
-    USDT = await ethers.getContractAt("IERC20Upgradeable", usdt);  
+    USDT = await ethers.getContractAt("IERC20Upgradeable", usdt); 
+    //LINK = await ethers.getContractAt("IERC20Upgradeable", link); 
     // THE ACCOUNTS AND SIGNERS ARE INITIALIZED // 
     [owner] = await ethers.getSigners();  
   });
@@ -41,19 +42,7 @@ it("Should deploy the lottery contract, first version, upgradeable", async funct
   lottery = await upgrades.deployProxy(Lottery);
   await lottery.deployed(); 
   const lotteryAddress = lottery.address;
-  console.log(lotteryAddress);
-  // IMPERSONATE ACCOUNT TO FUND THE CONTRACT WITH LINK //
-  /*
-      await hre.network.provider.request({
-        method: "hardhat_impersonateAccount",
-        params: ["0xbe6977E08D4479C0A6777539Ae0e8fa27BE4e9d6"],
-        });
-      const signer = await ethers.getSigner("0xbe6977E08D4479C0A6777539Ae0e8fa27BE4e9d6")
-      signer.sendTransaction(); 
-      LINK = await ethers.getContractAt("IERC20Upgradeable", link); 
-      await LINK.connect(signer).transfer(lottery.address, 10);
-      */ 
-      
+  console.log(lotteryAddress);     
 });  
 it("Should set the right owner of the lottery", async function (){
   expect(await lottery.owner()).to.equal(owner.address);
@@ -161,21 +150,16 @@ it("Should retire from the lottery", async function (){
   });
 });
 it("Should fail to invest in Compound out of the time", async function (){   
-  await expect(lottery.potInvestment()).to.be.revertedWith("You can not invest yet");
+  await expect(lottery.potInvestment(1)).to.be.revertedWith("You can not invest yet.");
 });
 it("Should fail to retire from Compound out of the time", async function (){   
-  await expect(lottery.retireInvestment()).to.be.revertedWith("You can not retire the money yet.");
+  await expect(lottery.retireInvestment(1)).to.be.revertedWith("You can not retire the money yet.");
 });
-it("Should invest in Compound", async function (){
-   
+it("Should invest in Compound", async function (){   
   await time.increase(time.duration.days(2));
-  await lottery.potInvestment();
-
-
+  await lottery.potInvestment(1);
 });
-
 it("Should buy tickets to the next lottery with DAI", async function (){
-  await time.increase(time.duration.days(3));
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
     params: ["0x7c8CA1a587b2c4c40fC650dB8196eE66DC9c46F4"],
@@ -207,14 +191,34 @@ it("Should buy tickets to the next lottery with USDC", async function (){
   await hre.network.provider.request({
     method: "hardhat_stopImpersonatingAccount",
     params: ["0xe31A9498a22493Ab922bc0EB240313A46525Ee0A"],
-  });  
+  }); 
+
 });
+it("Should retrieve the investment from Compound", async function (){ 
+  await time.increase(time.duration.days(5));
+  await lottery.retireInvestment(1);
+});
+it("Should ask for the random number and pay", async function (){   
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: ["0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66"],
+    });
+  const link = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
+  LINK = await ethers.getContractAt("IERC20Upgradeable", link);
+  const linker = await ethers.getSigner("0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66")
+  linker.sendTransaction();  
 
+  await LINK.connect(linker).approve(lottery.address, 500);
+  await LINK.connect(linker).transferFrom(linker.address, lottery.address, 500);
+  
+  const random = await lottery.getRandomNumber();
+  console.log("VRF response", random);
+   
+  await hre.network.provider.request({
+    method: "hardhat_stopImpersonatingAccount",
+    params: ["0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66"],
+  });  
 
-
-
-
-
-
+});
 
 })

@@ -192,7 +192,7 @@ contract Lottery is Initializable,
     function DAIsell(uint256 _amountIn, uint256 _date, uint256 _tickets)
     internal {
         // A loop to iterate between all lotteries.
-        for(uint256 j = 1; j < numberOfLotteries ; j++) {
+        for(uint256 j = 1; j <= numberOfLotteries ; j++) {
             uint256 starting =_idToLottery[j].startDate;
             uint256 deadlineToBuy = _idToLottery[j].buyingDeadline;
             // A condition to check if the buying date has already passed.
@@ -246,7 +246,7 @@ contract Lottery is Initializable,
     function tokenSell(uint256 _amountIn, uint256 _date, uint256 _tickets, address _tokenIn)
     internal {
         _swapTokensForDAI(_tokenIn, _amountIn);
-        for(uint256 j = 1; j < numberOfLotteries ; j++) {
+        for(uint256 j = 1; j <= numberOfLotteries ; j++) {
             uint256 starting =_idToLottery[j].startDate;
             uint256 deadlineToBuy = _idToLottery[j].buyingDeadline;
             if(starting <= _date && _date <= deadlineToBuy) {
@@ -367,43 +367,43 @@ contract Lottery is Initializable,
     /**
     * @notice a function to make a compound investment
     */
-    function potInvestment() 
+    function potInvestment(uint256 _id) 
     public
     onlyOwner {
         uint256 rightNow = block.timestamp;
-        // A loop to enter every lottery
-        for(uint256 k = 0; k < numberOfLotteries; k++) {
-            uint256 potToInvest = _idToLottery[k].pot;            
-            require(_idToLottery[k].buyingDeadline == rightNow, "You can not invest yet");
-            DAI.approve(address(cDAI), potToInvest);
-            require(cDAI.mint(potToInvest) == 0, "mint failed");           
-        }
+        require(_idToLottery[_id].buyingDeadline <= rightNow, "You can not invest yet.");
+        uint256 potToInvest = _idToLottery[_id].pot; 
+        console.log("Pot", potToInvest);       
+        DAI.approve(address(cDAI), potToInvest);
+        require(cDAI.mint(potToInvest) == 0, "mint failed");
     }    
     /**
     * @notice a function to retire the compound investment
     */
-    function retireInvestment() 
+    function retireInvestment(uint256 _id) 
     public
     onlyOwner {
         uint256 rightNow = block.timestamp;
-        for(uint256 k = 0; k < numberOfLotteries; k++) {
-            require(_idToLottery[k].finishDate == rightNow, "You can not retire the money yet.");
-            uint256 totalToRedeem = cDAI.balanceOf(address(this));
-            uint256 potInvested = _idToLottery[k].pot;
+        require(_idToLottery[_id].finishDate <= rightNow, "You can not retire the money yet.");
+        uint256 potInvested = _idToLottery[_id].pot;
+        uint256 totalToRedeem = cDAI.balanceOf(address(this));
+        if(totalToRedeem > 0) {            
             uint256 _prize = totalToRedeem.sub(potInvested);
             require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
-            _idToLottery[k].prize = _prize;
-            //getRandomNumber();                        
-        }
-    }
-    
+            _idToLottery[_id].prize = _prize;
+        } else {         
+            require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
+            _idToLottery[_id].prize = 0;
+        }        
+        //getRandomNumber();                    
+    }    
 //--------------------------------- Picking the winner -----------------------------------------//
     /**
     * @notice Functions to get randomnumbers with Chainlink VRF.
     * @dev First the call to the oracle.
     */
     function getRandomNumber() 
-    internal
+    public
     returns (bytes32 requestId) {        
         require(LINK.balanceOf(address(this)) >= randomnessFee, "Not enough LINK to pay fee");
         requestId = requestRandomness(keyHash, randomnessFee);
@@ -436,5 +436,5 @@ contract Lottery is Initializable,
         _idToLottery[ID].payed = true;
         _idToPlayer[_winnerAddress] = player(_winnerAddress, 0, 0, 0, false);
     }  
-}          
+}         
          

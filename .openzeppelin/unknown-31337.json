@@ -2,7 +2,7 @@
   "manifestVersion": "3.2",
   "admin": {
     "address": "0xefAB0Beb0A557E452b398035eA964948c750b2Fd",
-    "txHash": "0xddb5ac86edf8605699f3389d1f6efb6fcd52d82c4a272a26c3e89bdbef05a903"
+    "txHash": "0x714dea69be075c3ec8acb8f6d89aff8bab4550f853503d61f2dadcc0e49cfe92"
   },
   "proxies": [
     {
@@ -12,14 +12,14 @@
     },
     {
       "address": "0xaca81583840B1bf2dDF6CDe824ada250C1936B4D",
-      "txHash": "0xfcd84aead395119a30fc3ba219577abd536659864432b5bc794b13bccf18e2a1",
+      "txHash": "0x209c13ad78c0b6dc3d46c10f5d161e52e0d3a19d3f85802b4a77a3d23d814c29",
       "kind": "transparent"
     }
   ],
   "impls": {
-    "4ddea1fe4d7e88cb51653b61666b91bfbe94fc8f82070d74fc5106782d46183e": {
+    "5f7b66e4fba6c701242dd8844ec296d2115cc2e187dc9ce3c53b9171b710ca1b": {
       "address": "0x74Cf9087AD26D541930BaC724B7ab21bA8F00a27",
-      "txHash": "0xe4e6908d7136541a762d207f2f75a67221a7f38da5a1966a2b0a4e3fbb421620",
+      "txHash": "0x0ff8b3ae0d7052d8980d5fa10eaf2250389c41ef05439f3fb91d5ac15331fe9a",
       "layout": {
         "storage": [
           {
@@ -108,7 +108,7 @@
             "slot": "154",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:36"
+            "src": "contracts\\Lottery.sol:33"
           },
           {
             "label": "slippage",
@@ -116,7 +116,7 @@
             "slot": "155",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:37"
+            "src": "contracts\\Lottery.sol:34"
           },
           {
             "label": "ticketPrice",
@@ -124,7 +124,7 @@
             "slot": "156",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:38"
+            "src": "contracts\\Lottery.sol:35"
           },
           {
             "label": "numberOfLotteries",
@@ -132,135 +132,143 @@
             "slot": "157",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:39"
+            "src": "contracts\\Lottery.sol:36"
           },
           {
-            "label": "UniswapV2Router02",
+            "label": "StableSwap",
             "offset": 0,
             "slot": "158",
             "type": "t_address",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:40"
+            "src": "contracts\\Lottery.sol:37"
+          },
+          {
+            "label": "UniswapV2Router02",
+            "offset": 0,
+            "slot": "159",
+            "type": "t_address",
+            "contract": "Lottery",
+            "src": "contracts\\Lottery.sol:38"
           },
           {
             "label": "_tokensAccepted",
             "offset": 0,
-            "slot": "159",
+            "slot": "160",
             "type": "t_array(t_address)dyn_storage",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:42"
+            "src": "contracts\\Lottery.sol:40"
           },
           {
             "label": "DAIaddress",
             "offset": 0,
-            "slot": "160",
+            "slot": "161",
+            "type": "t_address",
+            "contract": "Lottery",
+            "src": "contracts\\Lottery.sol:41"
+          },
+          {
+            "label": "DAI",
+            "offset": 0,
+            "slot": "162",
+            "type": "t_contract(IERC20Upgradeable)595",
+            "contract": "Lottery",
+            "src": "contracts\\Lottery.sol:42"
+          },
+          {
+            "label": "USDCaddress",
+            "offset": 0,
+            "slot": "163",
             "type": "t_address",
             "contract": "Lottery",
             "src": "contracts\\Lottery.sol:43"
           },
           {
-            "label": "DAI",
+            "label": "USDC",
             "offset": 0,
-            "slot": "161",
+            "slot": "164",
             "type": "t_contract(IERC20Upgradeable)595",
             "contract": "Lottery",
             "src": "contracts\\Lottery.sol:44"
           },
           {
-            "label": "USDCaddress",
+            "label": "USDTaddress",
             "offset": 0,
-            "slot": "162",
+            "slot": "165",
             "type": "t_address",
             "contract": "Lottery",
             "src": "contracts\\Lottery.sol:45"
           },
           {
-            "label": "USDC",
+            "label": "USDT",
             "offset": 0,
-            "slot": "163",
+            "slot": "166",
             "type": "t_contract(IERC20Upgradeable)595",
             "contract": "Lottery",
             "src": "contracts\\Lottery.sol:46"
           },
           {
-            "label": "USDTaddress",
+            "label": "cDAI",
             "offset": 0,
-            "slot": "164",
-            "type": "t_address",
+            "slot": "167",
+            "type": "t_contract(CErc20)3071",
             "contract": "Lottery",
             "src": "contracts\\Lottery.sol:47"
           },
           {
-            "label": "USDT",
+            "label": "keyHash",
             "offset": 0,
-            "slot": "165",
-            "type": "t_contract(IERC20Upgradeable)595",
-            "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:48"
-          },
-          {
-            "label": "cDAI",
-            "offset": 0,
-            "slot": "166",
-            "type": "t_contract(CErc20)4402",
+            "slot": "168",
+            "type": "t_bytes32",
             "contract": "Lottery",
             "src": "contracts\\Lottery.sol:49"
           },
           {
-            "label": "keyHash",
-            "offset": 0,
-            "slot": "167",
-            "type": "t_bytes32",
-            "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:51"
-          },
-          {
             "label": "randomnessFee",
-            "offset": 0,
-            "slot": "168",
-            "type": "t_uint256",
-            "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:52"
-          },
-          {
-            "label": "randomResult",
             "offset": 0,
             "slot": "169",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:53"
+            "src": "contracts\\Lottery.sol:50"
+          },
+          {
+            "label": "randomResult",
+            "offset": 0,
+            "slot": "170",
+            "type": "t_uint256",
+            "contract": "Lottery",
+            "src": "contracts\\Lottery.sol:51"
           },
           {
             "label": "_idToPlayer",
             "offset": 0,
-            "slot": "170",
-            "type": "t_mapping(t_address,t_struct(player)1670_storage)",
+            "slot": "171",
+            "type": "t_mapping(t_address,t_struct(player)1661_storage)",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:82"
+            "src": "contracts\\Lottery.sol:80"
           },
           {
             "label": "_players",
             "offset": 0,
-            "slot": "171",
+            "slot": "172",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:83"
+            "src": "contracts\\Lottery.sol:81"
           },
           {
             "label": "_idToLottery",
             "offset": 0,
-            "slot": "172",
-            "type": "t_mapping(t_uint256,t_struct(lottery)1689_storage)",
+            "slot": "173",
+            "type": "t_mapping(t_uint256,t_struct(lottery)1680_storage)",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:84"
+            "src": "contracts\\Lottery.sol:82"
           },
           {
             "label": "_lotteryId",
             "offset": 0,
-            "slot": "173",
+            "slot": "174",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:85"
+            "src": "contracts\\Lottery.sol:83"
           }
         ],
         "types": {
@@ -288,7 +296,7 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(CErc20)4402": {
+          "t_contract(CErc20)3071": {
             "label": "contract CErc20",
             "numberOfBytes": "20"
           },
@@ -300,7 +308,7 @@
             "label": "contract LinkTokenInterface",
             "numberOfBytes": "20"
           },
-          "t_mapping(t_address,t_struct(player)1670_storage)": {
+          "t_mapping(t_address,t_struct(player)1661_storage)": {
             "label": "mapping(address => struct Lottery.player)",
             "numberOfBytes": "32"
           },
@@ -308,11 +316,11 @@
             "label": "mapping(bytes32 => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint256,t_struct(lottery)1689_storage)": {
+          "t_mapping(t_uint256,t_struct(lottery)1680_storage)": {
             "label": "mapping(uint256 => struct Lottery.lottery)",
             "numberOfBytes": "32"
           },
-          "t_struct(lottery)1689_storage": {
+          "t_struct(lottery)1680_storage": {
             "label": "struct Lottery.lottery",
             "members": [
               {
@@ -372,7 +380,7 @@
             ],
             "numberOfBytes": "256"
           },
-          "t_struct(player)1670_storage": {
+          "t_struct(player)1661_storage": {
             "label": "struct Lottery.player",
             "members": [
               {

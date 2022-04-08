@@ -14,6 +14,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 // INTERFACES USED //
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "./interfaces/IStableSwap.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/Compound.sol";
 // LIBRARIES USED //
@@ -33,6 +34,7 @@ contract Lottery is Initializable,
     uint256 public slippage;
     uint256 public ticketPrice;
     uint256 numberOfLotteries;
+    address private StableSwap;
     address private UniswapV2Router02;
     // tokens accepted
     address [] private _tokensAccepted;
@@ -87,6 +89,7 @@ contract Lottery is Initializable,
     initializer {
         __Ownable_init(); 
         __ReentrancyGuard_init();
+        StableSwap = 0x5F890841f657d90E081bAbdB532A05996Af79Fe6;
         UniswapV2Router02 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D; 
         DAIaddress = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         USDCaddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -100,7 +103,7 @@ contract Lottery is Initializable,
         _players = 0;
         _lotteryId = 0; 
         VRFConsumerBase.init(0xf0d54349aDdcf704F77AE15b96510dEA15cb7952,
-                                   0x514910771AF9Ca656af840dff83E8264EcF986CA);
+                            0x514910771AF9Ca656af840dff83E8264EcF986CA);
         keyHash = 0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445;
         randomnessFee = 2 * 10 ** 18; // 2 Link 
     }
@@ -394,19 +397,25 @@ contract Lottery is Initializable,
         } else {         
             require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
             _idToLottery[_id].prize = 0;
-        }        
-        //getRandomNumber();                    
+        }                    
     }    
 //--------------------------------- Picking the winner -----------------------------------------//
+    /**
+    * @notice a function to pick the winner
+    */
+    function pickWinner()
+    public {
+        getRandomNumber();
+    }
     /**
     * @notice Functions to get randomnumbers with Chainlink VRF.
     * @dev First the call to the oracle.
     */
     function getRandomNumber() 
-    public
+    internal
     returns (bytes32 requestId) {        
         require(LINK.balanceOf(address(this)) >= randomnessFee, "Not enough LINK to pay fee");
-        requestId = requestRandomness(keyHash, randomnessFee);
+        requestId = requestRandomness(keyHash, randomnessFee);        
     } 
     /**
     * @dev Second the response from the oracle. Inside this one we have the logic to select and 

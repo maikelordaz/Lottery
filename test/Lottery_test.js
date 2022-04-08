@@ -211,7 +211,7 @@ it("Should ask for the random number and pay", async function (){
   await LINK.connect(linker).approve(lottery.address, 500);
   await LINK.connect(linker).transferFrom(linker.address, lottery.address, 500);
   
-  const random = await lottery.getRandomNumber();
+  const random = await lottery.pickWinner();
   console.log("VRF response", random);
    
   await hre.network.provider.request({

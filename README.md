@@ -27,7 +27,10 @@ This is a solidity project about a lottery with the next characteristics:
 
     The project is intended to make swaps with Curve Finance, and is using the Stable Swap pool, but if you have problems with this pool you can change any swap you want, by changing the corresponding function, here you have an example for Uniswap. You just have to change this function
 
-    ```javascript
+
+
+
+    ``` javascript
         function _swapTokensForDAI(address _tokenIn, uint256 _amountIn)
         internal {
             IERC20Upgradeable(_tokenIn).approve(StableSwap, _amountIn);
@@ -41,7 +44,10 @@ This is a solidity project about a lottery with the next characteristics:
     ```
     For this one
 
-    ```javascript
+
+
+
+    ``` javascript
         function _swapTokensForDAI(address _tokenIn, uint256 _amountIn)
         internal{
             IERC20Upgradeable(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
@@ -55,6 +61,8 @@ This is a solidity project about a lottery with the next characteristics:
                     _amountIn, 1, _path, address(this), block.timestamp + 1);
         }
     ```
+    You can also change pools on Uniswap, for example 3pool. here you have the address for this one
+    > 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7
 
 
 

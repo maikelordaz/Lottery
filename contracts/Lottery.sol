@@ -14,7 +14,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 // INTERFACES USED //
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "./interfaces/IStableSwap.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./interfaces/Compound.sol";
 // LIBRARIES USED //
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
@@ -33,7 +33,7 @@ contract Lottery is Initializable,
     uint256 public slippage;
     uint256 public ticketPrice;
     uint256 numberOfLotteries;
-    address private StableSwap;
+    address private UniswapV2Router02;
     // tokens accepted
     address [] private _tokensAccepted;
     address private DAIaddress;
@@ -73,15 +73,12 @@ contract Lottery is Initializable,
         uint256 ticketsBuyed,
         uint256 lotteryNumber,
         bool playing
-    );
-    
+    );    
 // MAPPINGS //
-
     mapping(address => player) private _idToPlayer;
     uint256 private _players;
     mapping(uint256 => lottery) private _idToLottery;
     uint256 private _lotteryId;
-
 // FUNCTIONS //
 //--------------------------------- Initialization ---------------------------------------------//
 
@@ -90,7 +87,7 @@ contract Lottery is Initializable,
     initializer {
         __Ownable_init(); 
         __ReentrancyGuard_init();
-        StableSwap = 0x5F890841f657d90E081bAbdB532A05996Af79Fe6;
+        UniswapV2Router02 = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D; 
         DAIaddress = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         USDCaddress = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
         USDTaddress = 0xdAC17F958D2ee523a2206206994597C13D831ec7; 
@@ -167,24 +164,26 @@ contract Lottery is Initializable,
                         false);
             time = _finish;                                                          
         }
-        console.log("Total lotteries created", _lotteryId);            
+        //console.log("Total lotteries created", _lotteryId);            
     }
     /**
-    * @notice a function to swap betwen tokens to DAI using Curve Finance.
+    * @notice a function to swap betwen tokens.
     * @dev this is an auxiliar function.
     * @param _tokenIn is the address of the token that the user have.
-    * @param _amountIn is the amount of tokens the user has. 
+    * @param _amountIn is the amount of tokens the user has.
     */
     function _swapTokensForDAI(address _tokenIn, uint256 _amountIn)
-    internal {
+    internal{
 
-        IERC20Upgradeable(_tokenIn).approve(StableSwap, _amountIn);
-        for(uint128 q = 1; q <= _tokensAccepted.length; q++) {
-            if(_tokenIn == _tokensAccepted[q]) {
-                int128 _index = int128(q);
-                IStableSwap(StableSwap).exchange(_index, 0, _amountIn, 1);
-            }
-        }
+        IERC20Upgradeable(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
+        IERC20Upgradeable(_tokenIn).approve(UniswapV2Router02, _amountIn);
+        address[] memory _path;
+        _path = new address[](2);
+        _path[0] = _tokenIn;
+        _path[1] = DAIaddress;
+        IUniswapV2Router02(UniswapV2Router02).
+            swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                _amountIn, 1, _path, address(this), block.timestamp + 1);
     }
     /**
     * @notice A function called if the buyer pays with DAI
@@ -193,13 +192,14 @@ contract Lottery is Initializable,
     function DAIsell(uint256 _amountIn, uint256 _date, uint256 _tickets)
     internal {
         // A loop to iterate between all lotteries.
-        for(uint256 j = 0; j <= numberOfLotteries ; j++) {
+        for(uint256 j = 1; j < numberOfLotteries ; j++) {
+            uint256 starting =_idToLottery[j].startDate;
             uint256 deadlineToBuy = _idToLottery[j].buyingDeadline;
             // A condition to check if the buying date has already passed.
-            if(_date <= deadlineToBuy) {
+            if(starting <= _date && _date <= deadlineToBuy) {
                 // Add the player to the mapping, and emit the event.
                 _idToPlayer[msg.sender] =
-                player (msg.sender, 
+                    player (msg.sender, 
                         _amountIn,
                         _tickets,
                         j, 
@@ -211,17 +211,14 @@ contract Lottery is Initializable,
                                 true);
                 // Add the tokens to the pot.
                 _idToLottery[j].pot += _amountIn;
+                console.log("Lottery number", j);
                 // Asign each lottery ticket to the player
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j].ticketNumber++;
                     _idToLottery[j].buyer = msg.sender;
                 }    
             }// If the time already passed, I add the player to the next lottery.
-            else {              
-                // If there are no more lotteries I devolute the money.
-                if(j == numberOfLotteries) {
-                    DAI.transferFrom(address(this), msg.sender, _amountIn);
-                }
+            if(_date >= deadlineToBuy) {              
                 _idToPlayer[msg.sender] = 
                     player (msg.sender, 
                             _amountIn,
@@ -234,6 +231,7 @@ contract Lottery is Initializable,
                                 j.add(1),
                                 true);
                 _idToLottery[j.add(1)].pot += _amountIn;
+                console.log("Lottery number", j.add(1));
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j.add(1)].ticketNumber++;
                     _idToLottery[j.add(1)].buyer = msg.sender;
@@ -248,9 +246,10 @@ contract Lottery is Initializable,
     function tokenSell(uint256 _amountIn, uint256 _date, uint256 _tickets, address _tokenIn)
     internal {
         _swapTokensForDAI(_tokenIn, _amountIn);
-        for(uint256 j = 0; j <= numberOfLotteries ; j++) {
+        for(uint256 j = 1; j < numberOfLotteries ; j++) {
+            uint256 starting =_idToLottery[j].startDate;
             uint256 deadlineToBuy = _idToLottery[j].buyingDeadline;
-            if(_date <= deadlineToBuy) {
+            if(starting <= _date && _date <= deadlineToBuy) {
                 _idToPlayer[msg.sender] =
                     player (msg.sender, 
                         _amountIn,
@@ -263,14 +262,12 @@ contract Lottery is Initializable,
                                 j,
                                 true);
                 _idToLottery[j].pot += _amountIn;
+                console.log("Lottery number", j);
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j].ticketNumber++;
                     _idToLottery[j].buyer = msg.sender;
                 }    
-            } else {              
-                if(j == numberOfLotteries) {
-                    IERC20Upgradeable(_tokenIn).transferFrom(address(this), msg.sender, _amountIn);
-                }
+            } if(_date > deadlineToBuy) {             
                 _idToPlayer[msg.sender] = 
                     player (msg.sender, 
                             _amountIn,
@@ -283,6 +280,7 @@ contract Lottery is Initializable,
                                 j.add(1),
                                 true);
                 _idToLottery[j.add(1)].pot += _amountIn;
+                console.log("Lottery number", j.add(1));
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j.add(1)].ticketNumber++;
                     _idToLottery[j.add(1)].buyer = msg.sender;
@@ -290,73 +288,54 @@ contract Lottery is Initializable,
             }
         }               
     }
-
-//--------------------------------- Compound Investment ----------------------------------------//
-    /**
-    * @notice A function to make an investment on Compound.
-    * @dev This function is called automatically when there is one person playing.
-    */
-    function potInvestment() 
-    internal {
-        // A loop to enter every lottery
-        for(uint256 k = 0; k < numberOfLotteries; k++) {
-            uint256 potToInvest = _idToLottery[k].pot;
-            uint256 rightNow = block.timestamp;
-            // time checks
-            while(_idToLottery[k].finishDate < rightNow.add(1)) {
-                // Compound investment
-                if(_idToLottery[k].buyingDeadline == rightNow) {
-                    DAI.approve(address(cDAI), potToInvest);
-                    require(cDAI.mint(potToInvest) == 0, "mint failed");                  
-                } 
-                // Compound retire
-                if (_idToLottery[k].finishDate == rightNow) {
-                    uint256 totalToRedeem = cDAI.balanceOf(address(this));
-                    uint256 _prize = totalToRedeem.sub(potToInvest);
-                    require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
-                    _idToLottery[k].prize = _prize;
-                    // Dice a random number
-                    getRandomNumber();
-                }
-            }
-        }
-    }
 //--------------------------------- Player functions -------------------------------------------//
     /**
-    * @notice a function to buy the lottery tickets.
-    * @dev only DAI, USDT and USDC are accepted as payments.
-    * @dev only an exact amount of tokens are needed. For example if the ticket price is 10 and
-    * the player pay 25 tokens only 20 are used and the remaining 5 are given back to the player.
+    * @notice a function to buy the lottery tickets with DAI.
     * @param amountIn the amount of tokens the player pays.
+    * @param amountIn is the amount of DAIs payed.
     * @param tokenIn the token used by the player to buy tickets.  
     */
-    function buyTicket(uint256 amountIn, address tokenIn)
+    function buyTicketWithDai(uint256 amountIn, address tokenIn)
     public
     nonReentrant {
         // Some requirements about tokens, tickets and lotteries.
-        require(tokenIn == DAIaddress || 
-                tokenIn == USDTaddress || 
-                tokenIn == USDCaddress, 
-                "We only accept DAI, USDT or USDC tokens.");
+        require(tokenIn == DAIaddress, "We only accept DAI within this function.");
         require(amountIn >= ticketPrice, "You have to buy at least one ticket.");
         require(numberOfLotteries > 0, "There are no lotteries active right now");
         // Transfer all tokens to contract 
-        IERC20Upgradeable(tokenIn).allowance(msg.sender, address(this)); 
-        IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        DAI.allowance(msg.sender, address(this)); 
+        DAI.transferFrom(msg.sender, address(this), amountIn);
         // Update the players number
         _players++;
         // Calculates the tickets and the actual date
         uint256 tickets = amountIn.div(ticketPrice);
         uint256 playersBuyDate = block.timestamp;
-        // If it is DAI  the buyer gets the tickets automatically
-        if(tokenIn == DAIaddress) {
-            DAIsell(amountIn, playersBuyDate, tickets);
-        } else {
-            tokenSell(amountIn, playersBuyDate, tickets, tokenIn);
-        }
-        if(_players > 0) {
-            potInvestment();
-        }
+        // Call the auxiliar function
+        DAIsell(amountIn, playersBuyDate, tickets);
+        console.log("Total tickets:", tickets);
+    }
+    /**
+    * @notice a function to buy the lottery tickets with USDC and USDT.
+    * @dev only USDT and USDC are accepted as payments.
+    * @dev this functions are individuals for gas saving purpose.
+    * @param amountIn the amount of tokens the player pays.
+    * @param tokenIn the token used by the player to buy tickets.  
+    */
+    function buyTicketWithTokens(uint256 amountIn, address tokenIn)
+    public
+    nonReentrant {
+        require(tokenIn == USDTaddress || 
+                tokenIn == USDCaddress, 
+                "We only accept USDT or USDC tokens within this function.");
+        require(amountIn >= ticketPrice, "You have to buy at least one ticket.");
+        require(numberOfLotteries > 0, "There are no lotteries active right now");
+        IERC20Upgradeable(tokenIn).allowance(msg.sender, address(this)); 
+        IERC20Upgradeable(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        _players++;
+        uint256 tickets = amountIn.div(ticketPrice);
+        uint256 playersBuyDate = block.timestamp;        
+        tokenSell(amountIn, playersBuyDate, tickets, tokenIn); 
+        console.log("Total tickets:", tickets); 
     }
     /**
     * @notice a function to retire from the lottery.
@@ -365,8 +344,7 @@ contract Lottery is Initializable,
     */
     function retirement()
     public
-    nonReentrant {
-        
+    nonReentrant {        
         // A require to check if the caller is an actual player.
         require(_idToPlayer[msg.sender].playerAddress == msg.sender &&
                 _idToPlayer[msg.sender].playing == true, "You are not playing right now");
@@ -375,7 +353,7 @@ contract Lottery is Initializable,
         uint256 playersLottery = _idToPlayer[msg.sender].lotteryNumber;
         uint256 lotteryDate = _idToLottery[playersLottery].buyingDeadline;
         require(retirementDate < lotteryDate, 
-                "Your money is already invested, wait until the finisf date");
+                "Your money is already invested, wait until the finish date");
         // Transfer the tokens used by the player. DAI equivalent.
         uint256 devolution = _idToPlayer[msg.sender].DAIamount;
         DAI.transferFrom(address(this), msg.sender, devolution);
@@ -385,13 +363,47 @@ contract Lottery is Initializable,
         _idToPlayer[msg.sender] = player (msg.sender, 0, 0, 0, false);
         
     }
+//--------------------------------- Compound Investment ----------------------------------------//
+    /**
+    * @notice a function to make a compound investment
+    */
+    function potInvestment() 
+    public
+    onlyOwner {
+        uint256 rightNow = block.timestamp;
+        // A loop to enter every lottery
+        for(uint256 k = 0; k < numberOfLotteries; k++) {
+            uint256 potToInvest = _idToLottery[k].pot;            
+            require(_idToLottery[k].buyingDeadline == rightNow, "You can not invest yet");
+            DAI.approve(address(cDAI), potToInvest);
+            require(cDAI.mint(potToInvest) == 0, "mint failed");           
+        }
+    }    
+    /**
+    * @notice a function to retire the compound investment
+    */
+    function retireInvestment() 
+    public
+    onlyOwner {
+        uint256 rightNow = block.timestamp;
+        for(uint256 k = 0; k < numberOfLotteries; k++) {
+            require(_idToLottery[k].finishDate == rightNow, "You can not retire the money yet.");
+            uint256 totalToRedeem = cDAI.balanceOf(address(this));
+            uint256 potInvested = _idToLottery[k].pot;
+            uint256 _prize = totalToRedeem.sub(potInvested);
+            require(cDAI.redeem(totalToRedeem) == 0, "redeem failed");
+            _idToLottery[k].prize = _prize;
+            //getRandomNumber();                        
+        }
+    }
+    
 //--------------------------------- Picking the winner -----------------------------------------//
     /**
     * @notice Functions to get randomnumbers with Chainlink VRF.
     * @dev First the call to the oracle.
     */
     function getRandomNumber() 
-    public 
+    internal
     returns (bytes32 requestId) {        
         require(LINK.balanceOf(address(this)) >= randomnessFee, "Not enough LINK to pay fee");
         requestId = requestRandomness(keyHash, randomnessFee);

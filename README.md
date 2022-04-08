@@ -25,7 +25,8 @@ This is a solidity project about a lottery with the next characteristics:
 
 ## WALKTHROUGH
 
-    The project is intended to make swaps with Curve Finance, and is using the Stable Swap pool, but if you have problems with this pool you can change any swap you want, by changing the corresponding function, here you have an example for Uniswap. You just have to change this function
+    The project is intended to make swaps with Curve Finance, and is using the Stable Swap pool, but if you 
+    have problems with this pool you can change any swap you want, by changing the corresponding function, here you have an example for Uniswap. You just have to change this function
 
 
 

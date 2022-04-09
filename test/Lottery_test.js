@@ -16,8 +16,6 @@ describe("Lottery", function () {
     const dai = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
     const usdc = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
     const usdt = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-  // LINK TO FUND CONTRACT //
-  //const link = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
   // LOTTERIES //
     const price = 10;
     const _numberOfLotteries = 2;
@@ -33,7 +31,6 @@ beforeEach(async function () {
     DAI = await ethers.getContractAt("IERC20Upgradeable", dai);
     USDC = await ethers.getContractAt("IERC20Upgradeable", usdc);
     USDT = await ethers.getContractAt("IERC20Upgradeable", usdt); 
-    //LINK = await ethers.getContractAt("IERC20Upgradeable", link); 
     // THE ACCOUNTS AND SIGNERS ARE INITIALIZED // 
     [owner] = await ethers.getSigners();  
   });
@@ -198,6 +195,9 @@ it("Should retrieve the investment from Compound", async function (){
   await time.increase(time.duration.days(5));
   await lottery.retireInvestment(1);
 });
+it("Should fail to get a random number if the contract does not have Link", async function (){
+  await expect(lottery.pickWinner()).to.be.revertedWith("Not enough LINK to pay fee");
+});
 it("Should ask for the random number and pay", async function (){   
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
@@ -220,5 +220,4 @@ it("Should ask for the random number and pay", async function (){
   });  
 
 });
-
 })

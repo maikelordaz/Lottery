@@ -38,12 +38,8 @@ beforeEach(async function () {
 it("Should deploy the lottery contract, first version, upgradeable", async function (){
   lottery = await upgrades.deployProxy(Lottery);
   await lottery.deployed(); 
-  const lotteryAddress = lottery.address;
-  console.log(lotteryAddress);     
+  const lotteryAddress = lottery.address;     
 });  
-it("Should set the right owner of the lottery", async function (){
-  expect(await lottery.owner()).to.equal(owner.address);
-});
 it("Should set the fee", async function (){
   const _fee = BigNumber.from(5);
   await lottery.setFee(_fee);
@@ -55,18 +51,13 @@ it("Should get the actual ticket price", async function (){
   const expectedPrice = await lottery.getTicketPrice();
   console.log("Ticket Price", expectedPrice);
 });
-it("Should fail to buy a ticket if there is no lotteries actives when paying with DAI", 
-  async function (){
+it("Should fail to buy a ticket if there is no lotteries actives when paying with DAI",
+async function (){
     await expect(lottery.buyTicketWithDai(10, dai)).
       to.be.revertedWith("There are no lotteries active right now");
 });
-it("Should fail to buy a ticket if there is no lotteries actives when paying with USDC", 
-  async function (){
-    await expect(lottery.buyTicketWithTokens(10, usdc)).
-      to.be.revertedWith("There are no lotteries active right now");
-});
-it("Should fail to buy a ticket if there is no lotteries actives when paying with USDT", 
-  async function (){
+it("Should fail to buy a ticket if there is no lotteries actives when paying with tokens", 
+async function (){
     await expect(lottery.buyTicketWithTokens(10, usdt)).
       to.be.revertedWith("There are no lotteries active right now");
 });
@@ -173,7 +164,7 @@ it("Should buy tickets to the next lottery with DAI", async function (){
     params: ["0x7c8CA1a587b2c4c40fC650dB8196eE66DC9c46F4"],
   });
 });
-it("Should buy tickets to the next lottery with USDC", async function (){
+it("Should buy tickets to the next lottery with other tokens", async function (){
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
     params: ["0xe31A9498a22493Ab922bc0EB240313A46525Ee0A"],

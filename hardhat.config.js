@@ -30,5 +30,12 @@ module.exports = {
         blockNumber: 14533000
       }
     }
-   }
+   },
+   gasReporter: {
+    currency: "USD",
+    //gasPrice: 50,
+    //enabled: process.env.REPORT_GAS ? true : false,
+    coinmarketcap: process.env.CMC_API_KEY,
+    excludeContracts: ["mocks/"],
+  },
 };

@@ -2,7 +2,7 @@
   "manifestVersion": "3.2",
   "admin": {
     "address": "0xefAB0Beb0A557E452b398035eA964948c750b2Fd",
-    "txHash": "0x714dea69be075c3ec8acb8f6d89aff8bab4550f853503d61f2dadcc0e49cfe92"
+    "txHash": "0xddb5ac86edf8605699f3389d1f6efb6fcd52d82c4a272a26c3e89bdbef05a903"
   },
   "proxies": [
     {
@@ -12,14 +12,14 @@
     },
     {
       "address": "0xaca81583840B1bf2dDF6CDe824ada250C1936B4D",
-      "txHash": "0x209c13ad78c0b6dc3d46c10f5d161e52e0d3a19d3f85802b4a77a3d23d814c29",
+      "txHash": "0x9694a0fc64f99b9618424141119289222b1d6e48cfaa953720efd95d9a4b3bc8",
       "kind": "transparent"
     }
   ],
   "impls": {
-    "5f7b66e4fba6c701242dd8844ec296d2115cc2e187dc9ce3c53b9171b710ca1b": {
+    "14d81cc038d9d5d7ef435d9ea4cfc57a10078ad302c7c2b8d66027eb3d161d0a": {
       "address": "0x74Cf9087AD26D541930BaC724B7ab21bA8F00a27",
-      "txHash": "0x0ff8b3ae0d7052d8980d5fa10eaf2250389c41ef05439f3fb91d5ac15331fe9a",
+      "txHash": "0x5b1bfb674a25b1103985a264e87d33ea910beb5845b80bcda9ac4fe2b975af7b",
       "layout": {
         "storage": [
           {
@@ -108,7 +108,7 @@
             "slot": "154",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:33"
+            "src": "contracts\\Lottery.sol:37"
           },
           {
             "label": "slippage",
@@ -116,7 +116,7 @@
             "slot": "155",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:34"
+            "src": "contracts\\Lottery.sol:38"
           },
           {
             "label": "ticketPrice",
@@ -124,7 +124,7 @@
             "slot": "156",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:35"
+            "src": "contracts\\Lottery.sol:39"
           },
           {
             "label": "numberOfLotteries",
@@ -132,7 +132,7 @@
             "slot": "157",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:36"
+            "src": "contracts\\Lottery.sol:40"
           },
           {
             "label": "StableSwap",
@@ -140,7 +140,7 @@
             "slot": "158",
             "type": "t_address",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:37"
+            "src": "contracts\\Lottery.sol:41"
           },
           {
             "label": "UniswapV2Router02",
@@ -148,7 +148,7 @@
             "slot": "159",
             "type": "t_address",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:38"
+            "src": "contracts\\Lottery.sol:42"
           },
           {
             "label": "_tokensAccepted",
@@ -156,7 +156,7 @@
             "slot": "160",
             "type": "t_array(t_address)dyn_storage",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:40"
+            "src": "contracts\\Lottery.sol:44"
           },
           {
             "label": "DAIaddress",
@@ -164,7 +164,7 @@
             "slot": "161",
             "type": "t_address",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:41"
+            "src": "contracts\\Lottery.sol:45"
           },
           {
             "label": "DAI",
@@ -172,7 +172,7 @@
             "slot": "162",
             "type": "t_contract(IERC20Upgradeable)595",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:42"
+            "src": "contracts\\Lottery.sol:46"
           },
           {
             "label": "USDCaddress",
@@ -180,7 +180,7 @@
             "slot": "163",
             "type": "t_address",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:43"
+            "src": "contracts\\Lottery.sol:47"
           },
           {
             "label": "USDC",
@@ -188,7 +188,7 @@
             "slot": "164",
             "type": "t_contract(IERC20Upgradeable)595",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:44"
+            "src": "contracts\\Lottery.sol:48"
           },
           {
             "label": "USDTaddress",
@@ -196,7 +196,7 @@
             "slot": "165",
             "type": "t_address",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:45"
+            "src": "contracts\\Lottery.sol:49"
           },
           {
             "label": "USDT",
@@ -204,15 +204,15 @@
             "slot": "166",
             "type": "t_contract(IERC20Upgradeable)595",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:46"
+            "src": "contracts\\Lottery.sol:50"
           },
           {
             "label": "cDAI",
             "offset": 0,
             "slot": "167",
-            "type": "t_contract(CErc20)3071",
+            "type": "t_contract(CErc20)4326",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:47"
+            "src": "contracts\\Lottery.sol:51"
           },
           {
             "label": "keyHash",
@@ -220,7 +220,7 @@
             "slot": "168",
             "type": "t_bytes32",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:49"
+            "src": "contracts\\Lottery.sol:53"
           },
           {
             "label": "randomnessFee",
@@ -228,7 +228,7 @@
             "slot": "169",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:50"
+            "src": "contracts\\Lottery.sol:54"
           },
           {
             "label": "randomResult",
@@ -236,15 +236,15 @@
             "slot": "170",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:51"
+            "src": "contracts\\Lottery.sol:55"
           },
           {
             "label": "_idToPlayer",
             "offset": 0,
             "slot": "171",
-            "type": "t_mapping(t_address,t_struct(player)1661_storage)",
+            "type": "t_mapping(t_address,t_struct(player)1673_storage)",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:80"
+            "src": "contracts\\Lottery.sol:84"
           },
           {
             "label": "_players",
@@ -252,15 +252,15 @@
             "slot": "172",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:81"
+            "src": "contracts\\Lottery.sol:85"
           },
           {
             "label": "_idToLottery",
             "offset": 0,
             "slot": "173",
-            "type": "t_mapping(t_uint256,t_struct(lottery)1680_storage)",
+            "type": "t_mapping(t_uint256,t_struct(lottery)1692_storage)",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:82"
+            "src": "contracts\\Lottery.sol:86"
           },
           {
             "label": "_lotteryId",
@@ -268,7 +268,7 @@
             "slot": "174",
             "type": "t_uint256",
             "contract": "Lottery",
-            "src": "contracts\\Lottery.sol:83"
+            "src": "contracts\\Lottery.sol:87"
           }
         ],
         "types": {
@@ -296,7 +296,7 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(CErc20)3071": {
+          "t_contract(CErc20)4326": {
             "label": "contract CErc20",
             "numberOfBytes": "20"
           },
@@ -308,7 +308,7 @@
             "label": "contract LinkTokenInterface",
             "numberOfBytes": "20"
           },
-          "t_mapping(t_address,t_struct(player)1661_storage)": {
+          "t_mapping(t_address,t_struct(player)1673_storage)": {
             "label": "mapping(address => struct Lottery.player)",
             "numberOfBytes": "32"
           },
@@ -316,11 +316,11 @@
             "label": "mapping(bytes32 => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint256,t_struct(lottery)1680_storage)": {
+          "t_mapping(t_uint256,t_struct(lottery)1692_storage)": {
             "label": "mapping(uint256 => struct Lottery.lottery)",
             "numberOfBytes": "32"
           },
-          "t_struct(lottery)1680_storage": {
+          "t_struct(lottery)1692_storage": {
             "label": "struct Lottery.lottery",
             "members": [
               {
@@ -380,7 +380,7 @@
             ],
             "numberOfBytes": "256"
           },
-          "t_struct(player)1661_storage": {
+          "t_struct(player)1673_storage": {
             "label": "struct Lottery.player",
             "members": [
               {

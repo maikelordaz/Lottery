@@ -139,7 +139,7 @@ It is divided in sections so it can be more readable
         5. Picking the winner
 
 
-## :keyboard: TEST
+## :abacus: TEST
 
 The tests are divided to check every contract functionality one by one.
 

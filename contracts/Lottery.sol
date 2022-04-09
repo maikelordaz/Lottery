@@ -214,7 +214,7 @@ contract Lottery is Initializable,
                                 true);
                 // Add the tokens to the pot.
                 _idToLottery[j].pot += _amountIn;
-                console.log("Lottery number", j);
+                //console.log("Lottery number", j);
                 // Asign each lottery ticket to the player
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j].ticketNumber++;
@@ -234,7 +234,7 @@ contract Lottery is Initializable,
                                 j.add(1),
                                 true);
                 _idToLottery[j.add(1)].pot += _amountIn;
-                console.log("Lottery number", j.add(1));
+                //console.log("Lottery number", j.add(1));
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j.add(1)].ticketNumber++;
                     _idToLottery[j.add(1)].buyer = msg.sender;
@@ -265,7 +265,7 @@ contract Lottery is Initializable,
                                 j,
                                 true);
                 _idToLottery[j].pot += _amountIn;
-                console.log("Lottery number", j);
+                //console.log("Lottery number", j);
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j].ticketNumber++;
                     _idToLottery[j].buyer = msg.sender;
@@ -283,7 +283,7 @@ contract Lottery is Initializable,
                                 j.add(1),
                                 true);
                 _idToLottery[j.add(1)].pot += _amountIn;
-                console.log("Lottery number", j.add(1));
+                //console.log("Lottery number", j.add(1));
                 for(uint256 m = 0; m <= _tickets; m++) {
                     _idToLottery[j.add(1)].ticketNumber++;
                     _idToLottery[j.add(1)].buyer = msg.sender;
@@ -315,7 +315,7 @@ contract Lottery is Initializable,
         uint256 playersBuyDate = block.timestamp;
         // Call the auxiliar function
         DAIsell(amountIn, playersBuyDate, tickets);
-        console.log("Total tickets:", tickets);
+        //console.log("Total tickets:", tickets);
     }
     /**
     * @notice a function to buy the lottery tickets with USDC and USDT.
@@ -338,7 +338,7 @@ contract Lottery is Initializable,
         uint256 tickets = amountIn.div(ticketPrice);
         uint256 playersBuyDate = block.timestamp;        
         tokenSell(amountIn, playersBuyDate, tickets, tokenIn); 
-        console.log("Total tickets:", tickets); 
+        //console.log("Total tickets:", tickets); 
     }
     /**
     * @notice a function to retire from the lottery.
@@ -376,7 +376,7 @@ contract Lottery is Initializable,
         uint256 rightNow = block.timestamp;
         require(_idToLottery[_id].buyingDeadline <= rightNow, "You can not invest yet.");
         uint256 potToInvest = _idToLottery[_id].pot; 
-        console.log("Pot", potToInvest);       
+        //console.log("Pot", potToInvest);       
         DAI.approve(address(cDAI), potToInvest);
         require(cDAI.mint(potToInvest) == 0, "mint failed");
     }    
@@ -445,5 +445,6 @@ contract Lottery is Initializable,
         _idToLottery[ID].payed = true;
         _idToPlayer[_winnerAddress] = player(_winnerAddress, 0, 0, 0, false);
     }  
+    
 }         
          

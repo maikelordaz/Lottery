@@ -189,26 +189,5 @@ it("Should retrieve the investment from Compound", async function (){
 it("Should fail to get a random number if the contract does not have Link", async function (){
   await expect(lottery.pickWinner()).to.be.revertedWith("Not enough LINK to pay fee");
 });
-it("Should ask for the random number and pay", async function (){   
-  await hre.network.provider.request({
-    method: "hardhat_impersonateAccount",
-    params: ["0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66"],
-    });
-  const link = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
-  LINK = await ethers.getContractAt("IERC20Upgradeable", link);
-  const linker = await ethers.getSigner("0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66")
-  linker.sendTransaction();  
 
-  await LINK.connect(linker).approve(lottery.address, 500);
-  await LINK.connect(linker).transferFrom(linker.address, lottery.address, 500);
-  
-  const random = await lottery.pickWinner();
-  console.log("VRF response", random);
-   
-  await hre.network.provider.request({
-    method: "hardhat_stopImpersonatingAccount",
-    params: ["0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66"],
-  });  
-
-});
 })
